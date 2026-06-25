@@ -1,0 +1,179 @@
+datasource db {
+  provider = "sqlite"
+  url      = "file:./dev.db"
+}
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+model User {
+  id        String     @id @default(uuid())
+  email     String     @unique
+  password  String
+  name      String
+  createdAt DateTime   @default(now())
+  updatedAt DateTime   @updatedAt
+  companies Company[]
+  auditLogs AuditLog[]
+}
+
+model Company {
+  id            String         @id @default(uuid())
+  name          String
+  address       String?
+  gstin         String?
+  financialYear String         @default("2026-2027")
+  state         String?
+  phone         String?
+  email         String?
+  userId        String
+  user          User           @relation(fields: [userId], references: [id], onDelete: Cascade)
+  createdAt     DateTime       @default(now())
+  updatedAt     DateTime       @updatedAt
+  groups        Group[]
+  ledgers       Ledger[]
+  stockGroups   StockGroup[]
+  stockItems    StockItem[]
+  units         Unit[]
+  vouchers      Voucher[]
+  auditLogs     AuditLog[]
+}
+
+model Group {
+  id        String   @id @default(uuid())
+  name      String
+  type      String   // ASSET, LIABILITY, INCOME, EXPENSE
+  companyId String
+  company   Company  @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  ledgers   Ledger[]
+
+  @@unique([name, companyId])
+}
+
+model Ledger {
+  id             String         @id @default(uuid())
+  name           String
+  groupId        String
+  group          Group          @relation(fields: [groupId], references: [id])
+  openingBalance Float          @default(0.0)
+  currentBalance Float          @default(0.0)
+  mobile         String?
+  address        String?
+  gstin          String?
+  companyId      String
+  company        Company        @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  createdAt      DateTime       @default(now())
+  updatedAt      DateTime       @updatedAt
+  voucherEntries VoucherEntry[]
+  vouchers       Voucher[]      @relation("PartyLedger")
+
+  @@unique([name, companyId])
+}
+
+model StockGroup {
+  id         String      @id @default(uuid())
+  name       String
+  companyId  String
+  company    Company     @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  stockItems StockItem[]
+
+  @@unique([name, companyId])
+}
+
+model Unit {
+  id         String      @id @default(uuid())
+  name       String      // PCS, KG, BOX, etc.
+  companyId  String
+  company    Company     @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  stockItems StockItem[]
+
+  @@unique([name, companyId])
+}
+
+model StockItem {
+  id               String           @id @default(uuid())
+  name             String
+  sku              String?
+  purchaseRate     Float            @default(0.0)
+  sellingRate      Float            @default(0.0)
+  openingQty       Float            @default(0.0)
+  currentQty       Float            @default(0.0)
+  gstPercentage    Float            @default(0.0)
+  hsnCode          String?
+  unitId           String
+  unit             Unit             @relation(fields: [unitId], references: [id])
+  stockGroupId     String
+  stockGroup       StockGroup       @relation(fields: [stockGroupId], references: [id])
+  companyId        String
+  company          Company          @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  createdAt        DateTime         @default(now())
+  updatedAt        DateTime         @updatedAt
+  inventoryEntries InventoryEntry[]
+
+  @@unique([name, companyId])
+}
+
+model Voucher {
+  id               String           @id @default(uuid())
+  type             String           // CONTRA, PAYMENT, RECEIPT, JOURNAL, PURCHASE, SALES, CREDIT_NOTE, DEBIT_NOTE
+  date             DateTime         @default(now())
+  voucherNo        String
+  narration        String?
+  totalAmount      Float            @default(0.0)
+  partyLedgerId    String?          // The main party ledger (e.g. customer for sales, supplier for purchases)
+  partyLedger      Ledger?          @relation("PartyLedger", fields: [partyLedgerId], references: [id])
+  companyId        String
+  company          Company          @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  createdAt        DateTime         @default(now())
+  updatedAt        DateTime         @updatedAt
+  entries          VoucherEntry[]
+  inventoryEntries InventoryEntry[]
+  gstRecords       GSTRecord[]
+
+  @@unique([voucherNo, companyId, type])
+}
+
+model VoucherEntry {
+  id           String  @id @default(uuid())
+  voucherId    String
+  voucher      Voucher @relation(fields: [voucherId], references: [id], onDelete: Cascade)
+  ledgerId     String
+  ledger       Ledger  @relation(fields: [ledgerId], references: [id])
+  debitAmount  Float   @default(0.0)
+  creditAmount Float   @default(0.0)
+}
+
+model InventoryEntry {
+  id          String    @id @default(uuid())
+  voucherId   String
+  voucher     Voucher   @relation(fields: [voucherId], references: [id], onDelete: Cascade)
+  stockItemId String
+  stockItem   StockItem @relation(fields: [stockItemId], references: [id])
+  qty         Float
+  rate        Float
+  amount      Float
+  type        String    // IN, OUT
+}
+
+model GSTRecord {
+  id            String  @id @default(uuid())
+  voucherId     String
+  voucher       Voucher @relation(fields: [voucherId], references: [id], onDelete: Cascade)
+  cgst          Float   @default(0.0)
+  sgst          Float   @default(0.0)
+  igst          Float   @default(0.0)
+  taxableAmount Float
+  gstRate       Float
+}
+
+model AuditLog {
+  id        String   @id @default(uuid())
+  action    String
+  details   String?
+  timestamp DateTime @default(now())
+  userId    String?
+  user      User?    @relation(fields: [userId], references: [id], onDelete: SetNull)
+  companyId String?
+  company   Company? @relation(fields: [companyId], references: [id], onDelete: Cascade)
+}

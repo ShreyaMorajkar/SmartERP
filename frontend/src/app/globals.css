@@ -1,0 +1,76 @@
+@import "tailwindcss";
+
+:root {
+  --background: #090d16;
+  --foreground: #f8fafc;
+  --primary: #10b981;
+  --primary-glow: rgba(16, 185, 129, 0.2);
+  --secondary: #1e293b;
+  --card: #111827;
+  --border: #334155;
+  --tally-red: #ef4444;
+  --tally-blue: #0ea5e9;
+  --tally-bg-active: #1e293b;
+  --font-sans: 'Outfit', sans-serif;
+}
+
+body {
+  background-color: var(--background);
+  color: var(--foreground);
+  font-family: var(--font-sans), system-ui, -apple-system, sans-serif;
+  overflow-x: hidden;
+}
+
+/* Custom scrollbars */
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+::-webkit-scrollbar-track {
+  background: #0b1329;
+}
+::-webkit-scrollbar-thumb {
+  background: #1e293b;
+  border-radius: 4px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: #334155;
+}
+
+/* Tally-specific styling */
+.tally-hotkey {
+  color: var(--tally-red);
+  font-weight: bold;
+  text-decoration: underline;
+}
+
+.tally-menu-item {
+  transition: all 0.15s ease;
+}
+.tally-menu-item.active {
+  background-color: var(--primary-glow);
+  border-left: 4px solid var(--primary);
+  padding-left: 12px;
+}
+
+.tally-table th {
+  background-color: #0f172a;
+  border-bottom: 2px solid var(--border);
+  color: #94a3b8;
+  font-size: 0.75rem;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  padding: 10px;
+}
+
+.tally-table td {
+  border-bottom: 1px solid var(--border);
+  padding: 10px;
+  font-size: 0.875rem;
+}
+
+.glassmorphism {
+  background: rgba(17, 24, 39, 0.7);
+  backdrop-filter: blur(12px);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+}
