@@ -225,7 +225,7 @@ router.post('/', authMiddleware, async (req, res) => {
           igst = calcTaxable * (ratePercent / 100);
         }
 
-        await tx.gstRecord.create({
+        await tx.gSTRecord.create({
           data: {
             voucherId: voucher.id,
             cgst,
