@@ -1,0 +1,15 @@
+\chapter*{\textbf{\textit{Abstract}}}
+
+\begingroup
+\setlength{\parskip}{0.6cm}
+\setlength{\parindent}{0pt}
+
+In modern commercial accounting, speed, accuracy, and regulatory compliance are essential for high-throughput business operations. While legacy desktop ERP solutions such as Tally provide high-speed keyboard data entry, they lack cloud accessibility, multi-tenant collaboration, and modern API extensibility. Conversely, conventional web-based ERP systems often introduce UI latency and force heavy mouse interactions that hinder accountant productivity.
+
+This internship report details the design, architecture, and implementation of \textbf{SmartERP}---a full-stack, cloud-native billing, inventory, and double-entry accounting management platform inspired by the keyboard-driven workflow of Tally ERP. Built using Next.js 16 (React 19), Express.js (Node.js), Prisma ORM, and SQLite/PostgreSQL, the application implements atomic double-entry transaction processing, multi-level inventory tracking, state-aware Indian GST computation (CGST, SGST, IGST), and real-time financial reporting including Trial Balance, Profit \& Loss, and Balance Sheet statements.
+
+Key innovations include an event-driven keyboard shortcuts engine ($F1$--$F9$, underlined hotkeys, $ESC$ navigation stack), a context-preserving floating calculator ($F4$), spotlight command palette search ($Ctrl+K$), and automated server-side generation of GST-compliant PDF tax invoices and Excel ledger workbooks. The application's mathematical accuracy and data consistency have been thoroughly validated using an automated end-to-end integration test suite.
+
+\textbf{Keywords:} Cloud ERP, Double-Entry Bookkeeping, Keyboard-First UI, Next.js, Express.js, Prisma ORM, GST Tax Engine, Real-Time Accounting Reports.
+
+\endgroup
