@@ -57,12 +57,18 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
 
   // Sync token and user profile on mount
   useEffect(() => {
-    const storedToken = localStorage.getItem('token');
-    const storedUser = localStorage.getItem('user');
-    if (storedToken && storedUser) {
-      setToken(storedToken);
-      setUser(JSON.parse(storedUser));
-      setCurrentView('companies');
+    try {
+      const storedToken = localStorage.getItem('token');
+      const storedUser = localStorage.getItem('user');
+      if (storedToken && storedUser && storedUser !== 'undefined') {
+        setToken(storedToken);
+        setUser(JSON.parse(storedUser));
+        setCurrentView('companies');
+      }
+    } catch (e) {
+      console.error('Failed to parse stored user from localStorage', e);
+      localStorage.removeItem('user');
+      localStorage.removeItem('token');
     }
   }, []);
 
