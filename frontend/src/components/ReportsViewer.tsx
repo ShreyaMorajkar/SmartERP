@@ -55,18 +55,37 @@ export const ReportsViewer: React.FC = () => {
   }, [activeReport, activeCompany]);
 
   const handleExcelExport = () => {
-    if (!activeCompany) return;
-    const url = `${EXPORT_BASE}/excel/report?companyId=${activeCompany.id}&reportType=${
-      activeReport === 'trial' ? 'trial-balance' : activeReport === 'pl' ? 'profit-loss' : 'stock-summary'
-    }&token=${token}`;
+    if (!activeCompany || !token) return;
+    const reportTypeMap: Record<ReportType, string> = {
+      trial: 'trial-balance',
+      pl: 'profit-loss',
+      bs: 'balance-sheet',
+      stock: 'stock-summary',
+      gst: 'gst-register'
+    };
+    const reportSlug = reportTypeMap[activeReport] || 'trial-balance';
+    const url = `${EXPORT_BASE}/excel/report?companyId=${activeCompany.id}&reportType=${reportSlug}&token=${encodeURIComponent(token)}`;
     
-    // Simple window open to trigger browser file download
-    window.open(url, '_blank');
+    // Direct link click to prevent popup blocking
+    const a = document.createElement('a');
+    a.href = url;
+    a.target = '_blank';
+    a.download = `${reportSlug}_${activeCompany.name}.xlsx`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
   };
 
   const handlePDFDownload = (voucherId: string) => {
-    const url = `${EXPORT_BASE}/pdf/invoice/${voucherId}?token=${token}`;
-    window.open(url, '_blank');
+    if (!token) return;
+    const url = `${EXPORT_BASE}/pdf/invoice/${voucherId}?token=${encodeURIComponent(token)}`;
+    const a = document.createElement('a');
+    a.href = url;
+    a.target = '_blank';
+    a.download = `Invoice_${voucherId}.pdf`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
   };
 
   return (
@@ -87,14 +106,12 @@ export const ReportsViewer: React.FC = () => {
             <RefreshCw size={16} />
           </button>
           
-          {['trial', 'pl', 'stock'].includes(activeReport) && (
-            <button
-              onClick={handleExcelExport}
-              className="flex items-center text-xs font-bold bg-[#107c41] text-white border border-[#0f6c38] px-4 py-2 rounded-lg hover:bg-[#0f6c38] transition"
-            >
-              <FileSpreadsheet size={16} className="mr-2" /> EXPORT TO EXCEL
-            </button>
-          )}
+          <button
+            onClick={handleExcelExport}
+            className="flex items-center text-xs font-bold bg-[#107c41] text-white border border-[#0f6c38] px-4 py-2 rounded-lg hover:bg-[#0f6c38] transition"
+          >
+            <FileSpreadsheet size={16} className="mr-2" /> EXPORT TO EXCEL
+          </button>
         </div>
       </div>
 

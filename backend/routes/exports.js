@@ -277,10 +277,99 @@ router.get('/excel/report', authMiddleware, async (req, res) => {
       items.forEach(item => {
         const val = item.currentQty * item.purchaseRate;
         totalVal += val;
-        sheet.addRow([item.name, item.sku || '-', item.stockGroup.name, item.unit.name, item.currentQty, item.purchaseRate, val]);
+        sheet.addRow([item.name, item.sku || '-', item.stockGroup?.name || 'Default', item.unit?.name || 'Unit', item.currentQty, item.purchaseRate, val]);
       });
 
       const totalRow = sheet.addRow(['TOTAL INVENTORY VALUE', '', '', '', '', '', totalVal]);
+      totalRow.font = { bold: true };
+      totalRow.border = {
+        top: { style: 'thin' },
+        bottom: { style: 'double' }
+      };
+    } else if (reportType === 'balance-sheet') {
+      // Balance Sheet Excel Layout
+      sheet.getRow(3).values = ['Liabilities & Equity', 'Amount (INR)', 'Assets & Properties', 'Amount (INR)'];
+      sheet.getRow(3).font = { bold: true };
+
+      const ledgers = await prisma.ledger.findMany({
+        where: { companyId },
+        include: { group: true }
+      });
+
+      const liabilities = ledgers.filter(l => l.group.type === 'LIABILITY');
+      const assets = ledgers.filter(l => l.group.type === 'ASSET');
+
+      let totalLiab = 0;
+      let totalAsset = 0;
+
+      const maxRows = Math.max(liabilities.length, assets.length);
+      for (let i = 0; i < maxRows; i++) {
+        const l = liabilities[i];
+        const a = assets[i];
+        if (l) totalLiab += l.currentBalance;
+        if (a) totalAsset += a.currentBalance;
+
+        sheet.addRow([
+          l ? l.name : '',
+          l ? l.currentBalance : '',
+          a ? a.name : '',
+          a ? a.currentBalance : ''
+        ]);
+      }
+
+      const totalRow = sheet.addRow(['TOTAL LIABILITIES', totalLiab, 'TOTAL ASSETS', totalAsset]);
+      totalRow.font = { bold: true };
+      totalRow.border = {
+        top: { style: 'thin' },
+        bottom: { style: 'double' }
+      };
+    } else if (reportType === 'gst-register') {
+      // GST Register Excel Layout
+      sheet.getRow(3).values = ['Voucher No', 'Type', 'Date', 'Party Name', 'Taxable Amount (INR)', 'GST Rate (%)', 'CGST (INR)', 'SGST (INR)', 'IGST (INR)', 'Total Tax (INR)', 'Grand Total (INR)'];
+      sheet.getRow(3).font = { bold: true };
+
+      const vouchers = await prisma.voucher.findMany({
+        where: { companyId },
+        include: { gstRecords: true, partyLedger: true },
+        orderBy: { date: 'desc' }
+      });
+
+      let totalTaxable = 0, totalCGST = 0, totalSGST = 0, totalIGST = 0, grandTotal = 0;
+
+      vouchers.forEach(v => {
+        if (v.gstRecords && v.gstRecords.length > 0) {
+          v.gstRecords.forEach(g => {
+            const taxable = g.taxableAmount || 0;
+            const cgst = g.cgst || 0;
+            const sgst = g.sgst || 0;
+            const igst = g.igst || 0;
+            const taxTotal = cgst + sgst + igst;
+            const tot = taxable + taxTotal;
+
+            totalTaxable += taxable;
+            totalCGST += cgst;
+            totalSGST += sgst;
+            totalIGST += igst;
+            grandTotal += tot;
+
+            sheet.addRow([
+              v.voucherNo,
+              v.type,
+              new Date(v.date).toLocaleDateString(),
+              v.partyLedger ? v.partyLedger.name : 'Counter Sales',
+              taxable,
+              g.gstRate,
+              cgst,
+              sgst,
+              igst,
+              taxTotal,
+              tot
+            ]);
+          });
+        }
+      });
+
+      const totalRow = sheet.addRow(['TOTALS', '', '', '', totalTaxable, '', totalCGST, totalSGST, totalIGST, (totalCGST + totalSGST + totalIGST), grandTotal]);
       totalRow.font = { bold: true };
       totalRow.border = {
         top: { style: 'thin' },
