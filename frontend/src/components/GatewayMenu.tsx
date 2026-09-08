@@ -89,40 +89,72 @@ export const GatewayMenu: React.FC = () => {
     }
   ];
 
+  const activeIndexRef = React.useRef(activeIndex);
+  activeIndexRef.current = activeIndex;
+
+  const menuItemsRef = React.useRef(menuItems);
+  menuItemsRef.current = menuItems;
+
   useEffect(() => {
     const handleKeys = (e: KeyboardEvent) => {
+      const activeEl = document.activeElement;
       const isInputFocused =
-        document.activeElement?.tagName === 'INPUT' ||
-        document.activeElement?.tagName === 'TEXTAREA';
+        activeEl?.tagName === 'INPUT' ||
+        activeEl?.tagName === 'TEXTAREA' ||
+        (activeEl as HTMLElement)?.isContentEditable;
 
       if (isInputFocused) return;
+
+      const items = menuItemsRef.current;
+      const currentIdx = activeIndexRef.current;
 
       // Arrow navigation
       if (e.key === 'ArrowDown') {
         e.preventDefault();
-        setActiveIndex(prev => (prev + 1) % menuItems.length);
-      } else if (e.key === 'ArrowUp') {
+        e.stopPropagation();
+        const next = (activeIndexRef.current + 1) % items.length;
+        activeIndexRef.current = next;
+        setActiveIndex(next);
+        return;
+      }
+      
+      if (e.key === 'ArrowUp') {
         e.preventDefault();
-        setActiveIndex(prev => (prev - 1 + menuItems.length) % menuItems.length);
-      } else if (e.key === 'Enter') {
+        e.stopPropagation();
+        const prev = (activeIndexRef.current - 1 + items.length) % items.length;
+        activeIndexRef.current = prev;
+        setActiveIndex(prev);
+        return;
+      }
+      
+      if (e.key === 'Enter') {
         e.preventDefault();
-        menuItems[activeIndex].action();
+        e.stopPropagation();
+        const cur = activeIndexRef.current;
+        if (items[cur]) {
+          items[cur].action();
+        }
+        return;
       }
 
-      // Hotkey activation
-      const key = e.key.toUpperCase();
-      const match = menuItems.find(item => item.hotkey === key);
-      if (match) {
-        e.preventDefault();
-        match.action();
+      // Hotkey activation (case-insensitive single key)
+      if (!e.ctrlKey && !e.altKey && !e.metaKey && e.key.length === 1) {
+        const pressedChar = e.key.toUpperCase();
+        const match = items.find(item => item.hotkey.toUpperCase() === pressedChar);
+        if (match) {
+          e.preventDefault();
+          e.stopPropagation();
+          match.action();
+          return;
+        }
       }
     };
 
-    window.addEventListener('keydown', handleKeys);
+    window.addEventListener('keydown', handleKeys, { capture: true });
     return () => {
-      window.removeEventListener('keydown', handleKeys);
+      window.removeEventListener('keydown', handleKeys, { capture: true });
     };
-  }, [activeIndex]);
+  }, []);
 
   const renderLabel = (label: string, hotkey: string) => {
     const index = label.toUpperCase().indexOf(hotkey);

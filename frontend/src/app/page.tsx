@@ -59,7 +59,78 @@ export default function Home() {
   // Dialog Toggles for keyboard shortcuts hook
   const [commandPaletteOpen, setCommandPaletteOpen] = useState<boolean>(false);
   const [financialYearDialogOpen, setFinancialYearDialogOpen] = useState<boolean>(false);
-  const [companyInfoOpen, setCompanyInfoOpen] = useState<boolean>(false);
+  const [companyActiveIndex, setCompanyActiveIndex] = useState<number>(0);
+
+  const companyActiveIndexRef = React.useRef(companyActiveIndex);
+  companyActiveIndexRef.current = companyActiveIndex;
+
+  const companiesRef = React.useRef(companies);
+  companiesRef.current = companies;
+
+  // Keyboard navigation for Company selection screen
+  useEffect(() => {
+    if (currentView !== 'companies' || showCreateCompany) return;
+
+    const handleCompanyKeys = (e: KeyboardEvent) => {
+      const activeEl = document.activeElement;
+      const isInput = activeEl?.tagName === 'INPUT' || activeEl?.tagName === 'TEXTAREA';
+      if (isInput) return;
+
+      const comps = companiesRef.current;
+      const currentIdx = companyActiveIndexRef.current;
+
+      if (e.key === 'ArrowDown' || e.key === 'ArrowRight') {
+        e.preventDefault();
+        e.stopPropagation();
+        if (comps.length > 0) {
+          const next = (companyActiveIndexRef.current + 1) % comps.length;
+          companyActiveIndexRef.current = next;
+          setCompanyActiveIndex(next);
+        }
+        return;
+      }
+      
+      if (e.key === 'ArrowUp' || e.key === 'ArrowLeft') {
+        e.preventDefault();
+        e.stopPropagation();
+        if (comps.length > 0) {
+          const prev = (companyActiveIndexRef.current - 1 + comps.length) % comps.length;
+          companyActiveIndexRef.current = prev;
+          setCompanyActiveIndex(prev);
+        }
+        return;
+      }
+      
+      if (e.key === 'Enter') {
+        e.preventDefault();
+        e.stopPropagation();
+        const cur = companyActiveIndexRef.current;
+        if (comps.length > 0 && comps[cur]) {
+          selectCompany(comps[cur]);
+        }
+        return;
+      }
+      
+      if (e.key.toLowerCase() === 'n' && !e.ctrlKey && !e.altKey) {
+        e.preventDefault();
+        setShowCreateCompany(true);
+        return;
+      }
+      
+      if (/^[1-9]$/.test(e.key)) {
+        const numIdx = parseInt(e.key, 10) - 1;
+        if (comps[numIdx]) {
+          e.preventDefault();
+          e.stopPropagation();
+          selectCompany(comps[numIdx]);
+          return;
+        }
+      }
+    };
+
+    window.addEventListener('keydown', handleCompanyKeys, { capture: true });
+    return () => window.removeEventListener('keydown', handleCompanyKeys, { capture: true });
+  }, [currentView, showCreateCompany]);
 
   // Initialize Shortcuts
   useKeyboardShortcuts(
@@ -325,25 +396,45 @@ export default function Home() {
                   No active company records found. Click below to initialize.
                 </div>
               ) : (
-                companies.map(company => (
-                  <button
-                    key={company.id}
-                    onClick={() => selectCompany(company)}
-                    className="flex flex-col justify-between p-6 bg-slate-900 border border-slate-800 rounded-xl hover:border-emerald-500 hover:shadow-[0_0_20px_rgba(16,185,129,0.15)] text-left transition duration-200 group"
-                  >
-                    <div>
-                      <h3 className="text-lg font-bold text-white group-hover:text-emerald-400 transition mb-2">
-                        {company.name}
-                      </h3>
-                      <div className="text-xs text-slate-400 mb-1">GSTIN: {company.gstin || 'Unassigned'}</div>
-                      <div className="text-xs text-slate-400">State: {company.state || 'Unassigned'}</div>
-                    </div>
-                    <div className="flex justify-between items-center border-t border-slate-800/80 pt-4 mt-6 w-full text-[10px] text-slate-500 font-mono">
-                      <span>FY: {company.financialYear}</span>
-                      <span className="text-emerald-500 uppercase tracking-widest font-bold">Select console →</span>
-                    </div>
-                  </button>
-                ))
+                companies.map((company, idx) => {
+                  const isSelected = idx === companyActiveIndex;
+                  return (
+                    <button
+                      key={company.id}
+                      onClick={() => {
+                        setCompanyActiveIndex(idx);
+                        selectCompany(company);
+                      }}
+                      onMouseEnter={() => setCompanyActiveIndex(idx)}
+                      className={`flex flex-col justify-between p-6 bg-slate-900 border rounded-xl text-left transition duration-200 group ${
+                        isSelected
+                          ? 'border-emerald-500 shadow-[0_0_20px_rgba(16,185,129,0.25)] ring-1 ring-emerald-500'
+                          : 'border-slate-800 hover:border-slate-700'
+                      }`}
+                    >
+                      <div className="flex justify-between items-start">
+                        <div>
+                          <h3 className={`text-lg font-bold transition mb-2 ${isSelected ? 'text-emerald-400' : 'text-white'}`}>
+                            {company.name}
+                          </h3>
+                          <div className="text-xs text-slate-400 mb-1">GSTIN: {company.gstin || 'Unassigned'}</div>
+                          <div className="text-xs text-slate-400">State: {company.state || 'Unassigned'}</div>
+                        </div>
+                        <span className={`text-xs font-mono px-2 py-0.5 rounded border ${
+                          isSelected ? 'bg-emerald-950 text-emerald-400 border-emerald-800 font-bold' : 'bg-slate-800/40 text-slate-500 border-slate-800'
+                        }`}>
+                          [{idx + 1}]
+                        </span>
+                      </div>
+                      <div className="flex justify-between items-center border-t border-slate-800/80 pt-4 mt-6 w-full text-[10px] text-slate-500 font-mono">
+                        <span>FY: {company.financialYear}</span>
+                        <span className={`uppercase tracking-widest font-bold ${isSelected ? 'text-emerald-400' : 'text-slate-400'}`}>
+                          {isSelected ? 'Press Enter to Open ↵' : 'Select console →'}
+                        </span>
+                      </div>
+                    </button>
+                  );
+                })
               )}
 
               {/* Create company button card */}

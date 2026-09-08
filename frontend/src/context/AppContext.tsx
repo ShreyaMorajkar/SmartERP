@@ -55,20 +55,28 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   const [loading, setLoading] = useState<boolean>(false);
   const [calculatorOpen, setCalculatorOpen] = useState<boolean>(false);
 
-  // Sync token and user profile on mount
+  // Sync token, user profile, and active company on mount
   useEffect(() => {
     try {
       const storedToken = localStorage.getItem('token');
       const storedUser = localStorage.getItem('user');
+      const storedCompany = localStorage.getItem('activeCompany');
       if (storedToken && storedUser && storedUser !== 'undefined') {
         setToken(storedToken);
         setUser(JSON.parse(storedUser));
-        setCurrentView('companies');
+        if (storedCompany && storedCompany !== 'undefined') {
+          const parsedComp = JSON.parse(storedCompany);
+          setActiveCompany(parsedComp);
+          setCurrentView('gateway');
+        } else {
+          setCurrentView('companies');
+        }
       }
     } catch (e) {
-      console.error('Failed to parse stored user from localStorage', e);
+      console.error('Failed to parse stored auth from localStorage', e);
       localStorage.removeItem('user');
       localStorage.removeItem('token');
+      localStorage.removeItem('activeCompany');
     }
   }, []);
 
@@ -84,6 +92,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   const logout = () => {
     localStorage.removeItem('token');
     localStorage.removeItem('user');
+    localStorage.removeItem('activeCompany');
     setToken(null);
     setUser(null);
     setActiveCompany(null);
@@ -111,6 +120,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
 
   const selectCompany = (company: any) => {
     setActiveCompany(company);
+    localStorage.setItem('activeCompany', JSON.stringify(company));
     navigateTo('gateway');
   };
 
@@ -121,7 +131,14 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   };
 
   const goBack = () => {
-    if (viewStack.length === 0) return;
+    if (viewStack.length === 0) {
+      if (currentView !== 'gateway' && currentView !== 'companies' && currentView !== 'auth') {
+        setCurrentView('gateway');
+      } else if (currentView === 'gateway') {
+        setCurrentView('companies');
+      }
+      return;
+    }
     const newStack = [...viewStack];
     const prevView = newStack.pop();
     setViewStack(newStack);
